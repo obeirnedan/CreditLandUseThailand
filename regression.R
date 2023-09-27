@@ -53,7 +53,7 @@ tab1 <-  etable(DiD1_a, DiD1_b, DiD1_c, tex=T)
 ##################################################################################################################################################
 ############################################# All Tree Cover - All Districts - Percentage ###################################################################
 ##################################################################################################################################################
-df <- df %>% mutate(vil_per_km2=vil_per_km2*1000000) #Change so that credit is in baht/km2 not mil_baht/km2
+df <- df %>% mutate(vil_per_km2=vil_per_km2*1000000) #Change so that credit is in baht/km2 not mil_baht/km2 topa void ihs transformation issues
 
 # Forest Percetnage Raw
 DiD2_a <- df %>% 
