@@ -190,9 +190,13 @@ dfm %>%
 #Running a back-of-the-envelope on winsorised calculation
 # Additional 1m baht/km2 associated with 1.174km2 more forest
 n_distinct(dfm$ADM3_PCODE)
-1409*1.174  # = 1654km2 additional forest
+1409*1.174  # = 1654km2 additional forest #Funny Amount of Forest ttl
 
 
+dfm %>% group_by(year)%>%
+  summarise(forest_ttl = sum(area_forest))
+
+dfm %>% filter(year==2007) %>% summarise(forest_ttl = sum(area_forest))  
 
 # Below is older regressions ran out of interest / ideas for robustness checks, earlier ideas of best-treatments, other specifications etc.
 ##################################################################################################################################################
@@ -205,7 +209,7 @@ tab_app1 <- etable(DiD1_a, DiD1_b, DiD1_c,DiD2_a, DiD2_b, DiD2_c,DiD5_a, DiD5_b,
 
 
 ##################################################################################################################################################
-############################################# All Crop Cover - All Districts - Levels ###################################################################
+############################################# All Crop Cover - All Districts - Levels ###########################################################
 ##################################################################################################################################################
 
 #restrict years to ones of interest

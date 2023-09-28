@@ -33,7 +33,6 @@ df <- dft %>%
 
 df <- dft %>% subset(year %in% c(1995:2007))
 df <- df %>% mutate(vil_per_km2=vil_per_km2*1000000) #Change so that credit is in baht/km2 not mil_baht/km2
-df <- df %>% mutate(vil_per_km2=vil_per_km2/1000000) #Change so that credit is in baht/km2 not mil_baht/km2
 
 var <- c('Variable', 'Mean', 'SD', 'N')
 Variable <- c('Population', 'Credit/Km2','Crop Area', 'Forest Area')
@@ -213,7 +212,6 @@ fplot <- dft%>%group_by(year)%>%
   theme_bw()+
   theme(text = element_text(family = "serif"))
 
-plot()
 
 
 figure <- ggarrange(fplot, wb_plot  ,ncol=2 , nrow=1)
