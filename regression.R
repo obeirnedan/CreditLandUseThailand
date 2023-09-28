@@ -19,11 +19,86 @@ library(datawizard)
 
 setwd("~/R/CreditLandUseThailand")
 load("./data/dataframe_p_c_f.Rdata")
-dft <- as.data.frame(dft) %>%   subset(select=-c(geometry)) # any land cover that is considered tree cover >15% and up
+dft <- as.data.frame(dft) %>%   subset(select=-c(geometry)) # all tree cover is any land cover that is considered tree cover >15% and up
+
+##################################################################################################################################################
+############################################# All Tree Cover - All Districts - Percentage ###################################################################
+##################################################################################################################################################
+
+df <- dft %>% mutate(vil_per_km2=vil_per_km2*1000000)%>%  #Change so that credit is in baht/km2 not mil_baht/km2 topa void ihs transformation issues
+              subset(year %in% c(1995:2007))
+
+# Forest Percetnage Raw
+DiD2_a <- df %>% 
+  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+
+regtest <- lm
+
+# Forest Level Winsorized
+DiD2_b <- df %>% 
+  mutate(p_forest = winsorize(p_forest, threshold =.01),
+         vil_per_km2 =  winsorize(vil_per_km2, threshold =.01),
+         pop_dens = winsorize(pop_dens, threshold =.01))%>%
+  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+
+DiD2_c <- df %>%
+  mutate(vil_per_km2 =  asinh(vil_per_km2),
+         pop_dens = asinh(pop_dens),
+         p_forest = asinh(p_forest))%>%
+  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+
+tab2a <-  etable(DiD2_a, DiD2_b, DiD2_c, tex=F)
 
 
 ##################################################################################################################################################
-############################################# All Tree Cover - All Districts - Levels ###################################################################
+############################################# All Tree Cover - Mixed Districts - Percentage ###################################################################
+##################################################################################################################################################
+
+dfm <- dft %>% 
+  filter(p_forest_baseline > .2)%>%
+  mutate(p_crop_baseline = baseline_crop/area_km2,
+         vil_per_km2=vil_per_km2*1000000,
+         p_urban_baseline = baseline_urban/area_km2
+         )%>%
+  filter(p_crop_baseline > .2)%>%
+  subset(year %in% c(1995:2007))
+
+# Forest Percentage Raw
+DiD6_a <- dfm %>% 
+  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+
+#pdf <- panel(dfm,  ~ADM3_PCODE+year)
+# 
+# #As above including lags
+# DiD6_a <- pdf %>% 
+#   feols(p_forest ~ vil_per_km2:treat + l(p_forest,1:3) + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE'))
+
+
+# Forest Level Winsorized
+DiD6_b <- dfm %>% 
+  mutate(p_forest = winsorize(p_forest, threshold =.01),
+         vil_per_km2 =  winsorize(vil_per_km2, threshold =.01),
+         pop_dens = winsorize(pop_dens, threshold =.01))%>%
+  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+
+DiD6_c <- dfm %>%
+  mutate(vil_per_km2 =  asinh(vil_per_km2),
+         pop_dens = asinh(pop_dens),
+         p_forest = asinh(p_forest))%>%
+  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+
+# 
+# DiD6_c <- df %>%
+#   mutate(vil_per_km2 =  asinh(vil_per_km2),
+#          pop_dens = asinh(pop_dens))%>%
+#   feols(p_forest ~  vil_per_km2:treat + l(p_forest,3) + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+
+
+tab6a <-  etable(DiD6_a, DiD6_b, DiD6_c, tex=F)
+
+
+##################################################################################################################################################
+############################################# All Tree Cover - All Districts - Levels ############################################################
 ##################################################################################################################################################
 
 #restrict years to ones of interest
@@ -36,44 +111,19 @@ DiD1_a <- df %>%
 
 # Forest Level Winsorize
 DiD1_b <- df %>% 
- mutate(area_forest = winsorize(area_forest, threshold =.01),
- vil_per_km2 =  winsorize(vil_per_km2, threshold =.01),
- pop_dens = winsorize(pop_dens, threshold =.01))%>%
+  mutate(area_forest = winsorize(area_forest, threshold =.01),
+         vil_per_km2 =  winsorize(vil_per_km2, threshold =.01),
+         pop_dens = winsorize(pop_dens, threshold =.01))%>%
   feols(area_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
 
 # Forest Level asinh
 DiD1_c <- df %>%
- mutate(area_forest = asinh(area_forest),
- vil_per_km2 =  asinh(vil_per_km2),
- pop_dens = asinh(pop_dens))%>%
+  mutate(area_forest = asinh(area_forest),
+         vil_per_km2 =  asinh(vil_per_km2),
+         pop_dens = asinh(pop_dens))%>%
   feols(area_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
 
-tab1 <-  etable(DiD1_a, DiD1_b, DiD1_c, tex=T)
-
-##################################################################################################################################################
-############################################# All Tree Cover - All Districts - Percentage ###################################################################
-##################################################################################################################################################
-df <- df %>% mutate(vil_per_km2=vil_per_km2*1000000) #Change so that credit is in baht/km2 not mil_baht/km2 topa void ihs transformation issues
-
-# Forest Percetnage Raw
-DiD2_a <- df %>% 
-  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
-
- regtest <- lm
-
-# Forest Level Winsorized
-DiD2_b <- df %>% 
- mutate(p_forest = winsorize(p_forest, threshold =.01),
- vil_per_km2 =  winsorize(vil_per_km2, threshold =.01),
- pop_dens = winsorize(pop_dens, threshold =.01))%>%
-  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
-
-DiD2_c <- df %>%
- mutate(vil_per_km2 =  asinh(vil_per_km2),
- pop_dens = asinh(pop_dens))%>%
-  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
-
-tab2 <-  etable(DiD2_a, DiD2_b, DiD2_c, tex=F)
+tab1 <-  etable(DiD1_a, DiD1_b, DiD1_c, tex=F)
 
 
 
@@ -81,8 +131,7 @@ tab2 <-  etable(DiD2_a, DiD2_b, DiD2_c, tex=F)
 ############################################# All Tree Cover - Mixed Districts - Levels ###################################################################
 ##################################################################################################################################################
 
-
-df <- dft %>% 
+dfm <- dft %>% 
   filter(p_forest_baseline > .2)%>%
   mutate(p_crop_baseline = baseline_crop/area_km2,
          p_urban_baseline = baseline_urban/area_km2)%>%
@@ -90,74 +139,62 @@ df <- dft %>%
   subset(year %in% c(1995:2007))
 
 # Forest Level Raw
-DiD5_a <- df %>% 
+DiD5_a <- dfm %>% 
   feols(area_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
 
 # Forest Level Winsorize
-DiD5_b <- df %>% 
+DiD5_b <- dfm %>% 
   mutate(area_forest = winsorize(area_forest, threshold =.01),
          vil_per_km2 =  winsorize(vil_per_km2, threshold =.01),
          pop_dens = winsorize(pop_dens, threshold =.01))%>%
   feols(area_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
 
-# Forest Level - >20% forest
-DiD5_c <- df %>%
+# Forest Level - ihs
+DiD5_c <- dfm %>%
   mutate(area_forest = asinh(area_forest),
          vil_per_km2 =  asinh(vil_per_km2),
          pop_dens = asinh(pop_dens))%>%
   feols(area_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
 
-tab5 <-  etable(DiD5_a, DiD5_b, DiD5_c, tex=T)
+tab5 <-  etable(DiD5_a, DiD5_b, DiD5_c, tex=F)
 
 
-##################################################################################################################################################
-############################################# All Tree Cover - Mixed Districts - Percentage ###################################################################
-##################################################################################################################################################
+#####################################################################################################################################
+############################################# Model Outcome Predictions ############################################################
+#####################################################################################################################################
 
 
-# Forest Percetnage Raw
-DiD6_a <- df %>% 
-  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+#Predict on the IHS transformed data if there was no credit
+model <- DiD5_c
+  
+no_credit <- predict(model, newdata=(dfm %>% mutate(treat=0)))
 
-pdf <- panel(df,  ~ADM3_PCODE+year)
-# 
-# #As above including lags
-# DiD6_a <- pdf %>% 
-#   feols(p_forest ~ vil_per_km2:treat + l(p_forest,1:3) + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE'))
+dfm$no_cred_pred <- no_credit
 
+#There are negative values in the prediction - cannot have negative forest so setting min prediction to 0
+dfm <- dfm %>% mutate(no_cred_pred = if_else(no_cred_pred < 0, 0, no_cred_pred))
 
-# Forest Level Winsorized
-DiD6_b <- df %>% 
-  mutate(p_forest = winsorize(p_forest, threshold =.01),
-         vil_per_km2 =  winsorize(vil_per_km2, threshold =.01),
-         pop_dens = winsorize(pop_dens, threshold =.01))%>%
-  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+#Calculate the forest in 2007
+dfm %>%
+  filter(year==2007)%>%
+  summarise(Forest_Credit = sum(area_forest), Forest_No_Credit = sum(no_cred_pred), saved_forest = sum(area_forest)-sum(no_cred_pred))
 
-DiD6_c <- df %>%
-  mutate(vil_per_km2 =  asinh(vil_per_km2),
-         pop_dens = asinh(pop_dens))%>%
-  feols(p_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+# This seems weird (way too low predicted forest level in the no-treatment scenario)
+#Running a back-of-the-envelope calculation instead
+#Additional 1% credit/km2 gives and additional 3.64444% forest area
 
-# 
-# DiD6_c <- df %>%
-#   mutate(vil_per_km2 =  asinh(vil_per_km2),
-#          pop_dens = asinh(pop_dens))%>%
-#   feols(p_forest ~  vil_per_km2:treat + l(p_forest,3) + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
+dfm %>%
+  filter(year==2007)%>%
+  summarise(forest_07 = sum(area_forest), f_dif = sum(area_forest)*.036444)
 
-mean(asinh(df$vil_per_km2))
-
-tab6 <-  etable(DiD6_a, DiD6_b, DiD6_c, tex=F)
+#Running a back-of-the-envelope on winsorised calculation
+# Additional 1m baht/km2 associated with 1.174km2 more forest
+n_distinct(dfm$ADM3_PCODE)
+1409*1.174  # = 1654km2 additional forest
 
 
 
-tab1
-tab2
-tab5
-tab6
-
-
-
-
+# Below is older regressions ran out of interest / ideas for robustness checks, earlier ideas of best-treatments, other specifications etc.
 ##################################################################################################################################################
 ############################################# Extra Stuff ###################################################################
 ##################################################################################################################################################
@@ -290,42 +327,6 @@ tab1
 tab2
 tab5
 tab6
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -493,13 +494,4 @@ UFpop
 RFpop
 UCpop
 RCpop
-##################################################################################################################################################
-############################################# Regressions using fixed population ###################################################################
-##################################################################################################################################################
-
-
-mean_fc <- mean(df$forest_change)
-sd_fc <- sd(df$forest_change)
-mean_cc <- mean(df$crop_change)
-sd_cc <- sd(df$crop_change)
 
