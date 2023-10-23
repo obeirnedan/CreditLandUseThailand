@@ -218,6 +218,40 @@ figure <- ggarrange(fplot, wb_plot  ,ncol=2 , nrow=1)
 figure
 
 ############################################
+######### Employment by Sector #############
+emp <- read_csv("data/emp_stats/c0b949dc-21a9-443b-8802-ca924c74a249_Data.csv")
+
+#Quick Clean of Data
+emp <- emp %>%
+                na.omit()
+emp <- select(emp, -c(1:4))
+colnames(emp) <- c(1994:2008) #Fix colnname to years numeric not strings
+emp$Sector <- c("Agriculture", "Industry","Services")
+emp <- emp %>% relocate(Sector)
+
+
+emp <- emp %>%
+  pivot_longer(cols = 2:16,
+               names_to = 'year',
+               values_to = 'share') %>%
+  pivot_wider(names_from = 'Sector',
+              values_from = 'share') %>%
+  mutate(year = as.numeric(year))%>%
+  subset(year %in% c(1995:2007))
+  
+  
+
+emplot <- emp %>% 
+  select(year, Agriculture, Industry, Services) %>%
+  gather(key = "Sector", value = "Share", -year)
+
+emplot %>% 
+  ggplot(aes(x = factor(year), y = Share, group=Sector))+
+  geom_line(aes(color = Sector, linetype = Sector)) + 
+  scale_color_manual(values = c("darkred", "steelblue", 'olivedrab'))+
+  scale_x_discrete()
+
+############################################
 ######### Event Study ######################
 
 df <- dft %>% 
