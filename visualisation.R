@@ -253,7 +253,6 @@ emplot %>%
 
 ############################################
 ######### Event Study ######################
-
 df <- dft %>% 
   filter(p_forest_baseline > .2)%>%
   mutate(p_crop_baseline = baseline_crop/area_km2,

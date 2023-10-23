@@ -25,7 +25,7 @@ dft <- as.data.frame(dft) %>%   subset(select=-c(geometry)) # all tree cover is 
 ############################################# All Tree Cover - All Districts - Percentage ###################################################################
 ##################################################################################################################################################
 
-df <- dft %>% mutate(vil_per_km2=vil_per_km2*1000000)%>%  #Change so that credit is in baht/km2 not mil_baht/km2 topa void ihs transformation issues
+dft <- dft %>% mutate(vil_per_km2=vil_per_km2*1000000)%>%  #Change so that credit is in baht/km2 not mil_baht/km2 topa void ihs transformation issues
               subset(year %in% c(1995:2007))
 
 # Forest Percetnage Raw
@@ -57,7 +57,6 @@ tab2a <-  etable(DiD2_a, DiD2_b, DiD2_c, tex=F)
 dfm <- dft %>% 
   filter(p_forest_baseline > .2)%>%
   mutate(p_crop_baseline = baseline_crop/area_km2,
-         vil_per_km2=vil_per_km2*1000000,
          p_urban_baseline = baseline_urban/area_km2
          )%>%
   filter(p_crop_baseline > .2)%>%
@@ -152,51 +151,47 @@ DiD5_b <- dfm %>%
 # Forest Level - ihs
 DiD5_c <- dfm %>%
   mutate(area_forest = asinh(area_forest),
-         vil_per_km2 =  asinh(vil_per_km2),
+         vil_per_km2 =  asinh(vil_per_km2*1000000),
          pop_dens = asinh(pop_dens))%>%
   feols(area_forest ~ vil_per_km2:treat + pop_dens | year + ADM3_PCODE, cluster=c('ADM3_PCODE')) 
 
-tab5 <-  etable(DiD5_a, DiD5_b, DiD5_c, tex=F)
+tab5 <-  etable(DiD5_a, DiD5_b, DiD5_c, tex=T)
 
 
 #####################################################################################################################################
 ############################################# Model Outcome Predictions ############################################################
 #####################################################################################################################################
 
+vf <-predict(DiD5_a, dfm)
+no_vf <- predict(DiD5_a, mutate(dfm, vil_per_km2=0))
 
-#Predict on the IHS transformed data if there was no credit
-model <- DiD5_c
-  
-no_credit <- predict(model, newdata=(dfm %>% mutate(treat=0)))
 
-dfm$no_cred_pred <- no_credit
 
-#There are negative values in the prediction - cannot have negative forest so setting min prediction to 0
-dfm <- dfm %>% mutate(no_cred_pred = if_else(no_cred_pred < 0, 0, no_cred_pred))
+mod <- coef(DiD5_b,"vil_per_km2:treat")[[1]] #The Model Coefficient
 
-#Calculate the forest in 2007
-dfm %>%
-  filter(year==2007)%>%
-  summarise(Forest_Credit = sum(area_forest), Forest_No_Credit = sum(no_cred_pred), saved_forest = sum(area_forest)-sum(no_cred_pred))
+#Forest saved is the model coefficient (1 additional baht /km2 is additional 1.16e-6 km2 forest), times amount of money (village count *1 million) 
+#How Many Baht per KM2 is ttl_baht/ttl_area
+df01<-  dfm %>%
+          filter(year==2007)
 
-# This seems weird (way too low predicted forest level in the no-treatment scenario)
-#Running a back-of-the-envelope calculation instead
-#Additional 1% credit/km2 gives and additional 3.64444% forest area
+cred <- ((sum(df01$village_count))*1000000 )/ sum(df01$area_km2) 
 
-dfm %>%
-  filter(year==2007)%>%
-  summarise(forest_07 = sum(area_forest), f_dif = sum(area_forest)*.036444)
+df01%>%
+  summarise(vil_funds=sum(village_count), Forest=sum(area_forest), Forest_Saved = cred*mod)
+
+
+
 
 #Running a back-of-the-envelope on winsorised calculation
 # Additional 1m baht/km2 associated with 1.174km2 more forest
-n_distinct(dfm$ADM3_PCODE)
-1409*1.174  # = 1654km2 additional forest #Funny Amount of Forest ttl
 
+#1.174 vil_per_km2 * number of villages per km2
+sum ((df01$village_count / df01$area_km2) * 1.17)
 
-dfm %>% group_by(year)%>%
-  summarise(forest_ttl = sum(area_forest))
+dfm %>%
+  group_by(ADM3_PCODE)%>%
+  summarise(deforest = sum(forest_change), area=area_forest)%>%View()
 
-dfm %>% filter(year==2007) %>% summarise(forest_ttl = sum(area_forest))  
 
 # Below is older regressions ran out of interest / ideas for robustness checks, earlier ideas of best-treatments, other specifications etc.
 ##################################################################################################################################################

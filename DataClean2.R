@@ -85,14 +85,13 @@ for(i in 1:length(rasternames)){
 #   nat_forest[[i]] <- raster(paste0('./data/forest_cover_thailand_92_14/',rasternames[[i]]))
 # }
 
-#Consolidate raster values into two - forest(1) and not-forest(0)
-# Note this raster, downloaded from ESA website has unusual categorization of items - the below commented categorisation is what the file should look like if the value were correct (using file from Dennis's computer and the commented value-categories yields identical result)
+#Consolidate raster values 
 for(i in 1:length(nat_forest)){
 
   nat_forest[[i]][nat_forest[[i]] %in% c(190)] <- 1 #urban 
     
   nat_forest[[i]][nat_forest[[i]] %in% c(40,50, 60, 61, 62, 70, 72, 80, 81, 82, 90, 100, 110, 120, 121,
-                                         122, 130, 140, 140, 150, 152, 153, 160, 170, 180 )] <- 2 # forest/bio area 
+                                         122, 130, 140, 150, 152, 153, 160, 170, 180 )] <- 2 # forest/bio area 
   
    nat_forest[[i]][nat_forest[[i]] %in% c(10,11,12,20,30)] <- 3   #crop 
    
